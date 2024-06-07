@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: "demo"
+  liquibase:
+    enabled: false
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:6432/demo_local
+    username: demo_test
+    password: demo_test_123
+    hikari:
+      maximum-pool-size: 25
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        temp:
+          use_jdbc_metadata_defaults: false
+
+server:
+  port: 8080

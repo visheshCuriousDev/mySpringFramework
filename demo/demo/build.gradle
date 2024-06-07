@@ -1,0 +1,165 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.3.0'
+	id 'io.spring.dependency-management' version '1.1.5'
+	id 'jacoco'
+	id 'com.google.cloud.tools.jib' version '3.3.1'
+	id 'org.owasp.dependencycheck' version '8.2.1'
+	id 'com.diffplug.spotless' version '6.23.3'
+}
+
+group = 'com.vishesh'
+version = '0.0.1-SNAPSHOT'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(20)
+	}
+}
+
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+}
+
+repositories {
+	mavenLocal()
+	mavenCentral()
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.liquibase:liquibase-core'
+	compileOnly 'org.projectlombok:lombok'
+	runtimeOnly 'org.postgresql:postgresql'
+	annotationProcessor 'org.projectlombok:lombok'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+	testImplementation 'org.testcontainers:junit-jupiter'
+	testImplementation 'org.testcontainers:postgresql'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}
+
+test {
+	useJUnitPlatform()
+	filter {}
+	testLogging {
+		showStandardStreams = true
+		events 'PASSED', 'SKIPPED', 'FAILED'
+	}
+	finalizedBy(tasks.jacocoTestReport)
+}
+
+jacoco {
+	toolVersion = "0.8.9"
+	reportsDirectory = layout.buildDirectory.dir('JacocoReport')
+}
+
+jacocoTestReport {
+	afterEvaluate {
+		classDirectories.setFrom(files(classDirectories.files.collect {
+			fileTree(dir: it, exclude: ["**/config/**",
+										"**/DemoApplication.*"])
+		}))
+	}
+}
+
+jacocoTestCoverageVerification {
+	afterEvaluate {
+		classDirectories.setFrom(files(classDirectories.files.collect {
+			fileTree(dir: it, exclude: ["**/config/**",
+										"**/DemoApplication.*"])
+		}))
+	}
+	violationRules {
+		rule {
+			limit {
+				counter = 'LINE'
+				value = 'COVEREDRATIO'
+				minimum = 0.9
+			}
+		}
+
+		rule {
+			limit {
+				counter = 'METHOD'
+				value = 'COVEREDRATIO'
+				minimum = 0.9
+			}
+		}
+
+		rule {
+			limit {
+				counter = 'CLASS'
+				value = 'COVEREDRATIO'
+				minimum = 1
+			}
+		}
+
+		rule {
+			limit {
+				counter = 'COMPLEXITY'
+				value = 'COVEREDRATIO'
+				minimum = 0.7
+			}
+		}
+	}
+}
+
+tasks {
+	jar {
+		dependsOn(tasks.jibDockerBuild)
+	}
+}
+
+jib {
+	from {
+		image = 'openjdk:alpine'
+	}
+	to {
+		image = ''
+		if (project.hasProperty('APP_VERSION')) {
+			tags = ['latest', findProperty('APP_VERSION')] as List<String>
+		} else {
+			tags = ['latest']
+		}
+	}
+	container {
+		mainClass = 'com.vishesh.demo.DemoApplication'
+		ports = ['8080']
+		environment = [
+				JAVA_TOOL_OPTIONS: '-XX:+UseContainerSupport -XX:MaxRAMPercentage=70.0'
+		]    }
+}
+
+dependencyCheck {
+	suppressionFiles = ['owasp-suppression.xml']
+	failBuildOnCVSS = 8
+	analyzers {
+		assemblyEnabled = false
+		ossIndex {
+			enabled = false
+		}
+	}
+}
+
+spotless {
+	java {
+		target 'src/*/java/**/*.java'
+		removeUnusedImports()
+		googleJavaFormat().aosp()
+	}
+}
+
+compileJava.dependsOn spotlessCheck
+// Attach spotless apply to build stage
+afterEvaluate {
+	tasks.getByName('spotlessCheck').dependsOn(tasks.getByName('spotlessApply'))
+}
