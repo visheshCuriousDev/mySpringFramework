@@ -1,5 +1,5 @@
 services:
-  newsletter-local-db:
+  demo-local-db:
     image: postgres:15
     container_name: demo-local-db
     ports:
