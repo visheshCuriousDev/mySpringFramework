@@ -1,0 +1,18 @@
+databaseChangeLog:
+
+  # default properties
+  - property:
+      name: dba_user
+      value: nl_enrichment_test
+  - property:
+      name: app-database-user
+      value: nl_enrichment_test
+
+  - include:
+      file: changes/001_create_tables.yml
+      relativeToChangelogFile: true
+
+  # script needs to run last, please insert new scripts before
+  - include:
+      file: changes/grant_default_access_for_dml_and_dba_users.yml
+      relativeToChangelogFile: true

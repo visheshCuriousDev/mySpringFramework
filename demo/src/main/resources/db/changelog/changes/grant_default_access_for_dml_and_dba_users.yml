@@ -1,0 +1,16 @@
+databaseChangeLog:
+  - changeSet:
+      id: grant_access_to_tables_and_sequences
+      author: Vishesh M
+      runAlways: true
+      comment: Grant CRUD privileges for all tables in schema ${schema} to "${app-database-user}" and read access to "${dba_user}"
+      changes:
+        - sql:
+            sql: |
+              grant select, update, insert on all tables in schema ${schema} to "${app-database-user}";
+        - sql:
+            sql: |
+              grant select on all tables in schema ${schema} to "${dba_user}";
+        - sql:
+            sql: |
+              grant usage, select on all sequences in schema ${schema} to "${app-database-user}", "${dba_user}";
